@@ -1,5 +1,8 @@
 # Canvas AI Agent — Cloudflare Edition
 
+Demo using my Canvas resources: https://canvas-ai-agent.zhengzhsam.workers.dev/
+
+
 An AI-powered Canvas LMS assistant rebuilt on Cloudflare's platform.
 
 **Stack:**
