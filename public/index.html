@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Canvas AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#0c0d0f;--surface:#141518;--surface2:#1c1e22;--border:#2a2d33;--accent:#e8ff5a;--accent-dim:rgba(232,255,90,0.12);--text:#e8eaed;--text-dim:#6b7280;--text-dimmer:#3d4148;--red:#ff5a5a;--green:#5aff8c}
+    html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}
+    .app{display:grid;grid-template-rows:56px 1fr auto;height:100vh;max-width:860px;margin:0 auto}
+    header{display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid var(--border)}
+    .logo{display:flex;align-items:center;gap:10px}
+    .logo-mark{width:28px;height:28px;background:var(--accent);border-radius:6px;display:grid;place-items:center;font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--bg)}
+    .logo-text{font-size:14px;font-weight:500}
+    .logo-sub{font-size:11px;color:var(--text-dim);font-family:'DM Mono',monospace}
+    .status-dot{width:7px;height:7px;border-radius:50%;background:var(--text-dimmer);transition:all 0.4s}
+    .status-dot.ready{background:var(--green);box-shadow:0 0 8px var(--green)}
+    .status-dot.error{background:var(--red)}
+    .session-badge{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dimmer);background:var(--surface);border:1px solid var(--border);padding:3px 8px;border-radius:20px}
+    .messages{overflow-y:auto;padding:32px 24px;display:flex;flex-direction:column;gap:2px;scroll-behavior:smooth}
+    .messages::-webkit-scrollbar{width:4px}
+    .messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+    .msg{display:flex;gap:12px;padding:14px 0;animation:fadeUp 0.2s ease}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+    .msg-avatar{width:28px;height:28px;border-radius:6px;flex-shrink:0;display:grid;place-items:center;font-family:'DM Mono',monospace;font-size:11px;font-weight:500;margin-top:1px}
+    .msg.user .msg-avatar{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(232,255,90,0.25)}
+    .msg.ai .msg-avatar{background:var(--surface2);color:var(--text-dim);border:1px solid var(--border)}
+    .msg-body{flex:1;min-width:0}
+    .msg-role{font-size:11px;font-family:'DM Mono',monospace;color:var(--text-dimmer);margin-bottom:6px;letter-spacing:.05em;text-transform:uppercase}
+    .msg.user .msg-role{color:rgba(232,255,90,0.4)}
+    .msg-text{font-size:14px;line-height:1.65;color:var(--text);white-space:pre-wrap;word-break:break-word}
+    .msg.user .msg-text{color:#c8cad0}
+    .typing-dots{display:inline-flex;gap:4px;align-items:center;padding:4px 0}
+    .typing-dots span{width:5px;height:5px;border-radius:50%;background:var(--text-dimmer);animation:bounce 1.2s infinite}
+    .typing-dots span:nth-child(2){animation-delay:.2s}
+    .typing-dots span:nth-child(3){animation-delay:.4s}
+    @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+    .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text-dimmer);text-align:center;padding:40px}
+    .empty-icon{font-size:36px;margin-bottom:8px}
+    .empty h2{font-size:16px;font-weight:500;color:var(--text-dim)}
+    .empty p{font-size:13px;line-height:1.5;max-width:320px}
+    .suggestions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;justify-content:center}
+    .suggestion{font-size:12px;padding:7px 14px;border:1px solid var(--border);border-radius:20px;background:var(--surface);color:var(--text-dim);cursor:pointer;transition:all 0.15s;font-family:'DM Mono',monospace}
+    .suggestion:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+    .input-bar{padding:16px 24px 24px;border-top:1px solid var(--border)}
+    .input-wrap{display:flex;gap:10px;align-items:flex-end;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;transition:border-color 0.15s}
+    .input-wrap:focus-within{border-color:rgba(232,255,90,0.35)}
+    textarea{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5;resize:none;min-height:22px;max-height:140px}
+    textarea::placeholder{color:var(--text-dimmer)}
+    .send-btn{width:34px;height:34px;border-radius:7px;border:none;background:var(--accent);color:var(--bg);display:grid;place-items:center;cursor:pointer;flex-shrink:0;transition:all 0.15s}
+    .send-btn:disabled{opacity:0.3;cursor:not-allowed}
+    .send-btn:not(:disabled):hover{transform:scale(1.05)}
+    .send-btn svg{width:15px;height:15px}
+    .input-hint{font-size:11px;color:var(--text-dimmer);font-family:'DM Mono',monospace;margin-top:8px;text-align:center}
+    .input-hint kbd{font-family:inherit;background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:1px 5px}
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">
+      <div class="logo-mark">C↑</div>
+      <div>
+        <div class="logo-text">Canvas AI</div>
+        <div class="logo-sub">wustl.instructure.com</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="session-badge" id="sessionBadge">connecting…</span>
+      <div class="status-dot" id="statusDot"></div>
+    </div>
+  </header>
+  <div class="messages" id="messages">
+    <div class="empty" id="empty">
+      <div class="empty-icon">🎓</div>
+      <h2>Canvas AI Agent</h2>
+      <p>Powered by Llama 3.3 on Cloudflare Workers AI. Ask about your courses, assignments, grades, or files.</p>
+      <div class="suggestions">
+        <div class="suggestion" onclick="suggest(this)">What courses am I in?</div>
+        <div class="suggestion" onclick="suggest(this)">Any upcoming assignments?</div>
+        <div class="suggestion" onclick="suggest(this)">Show my todo list</div>
+        <div class="suggestion" onclick="suggest(this)">Upcoming calendar events</div>
+      </div>
+    </div>
+  </div>
+  <div class="input-bar">
+    <div class="input-wrap">
+      <textarea id="input" placeholder="Ask about courses, assignments, grades, files…" rows="1"
+        onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="input-hint"><kbd>Enter</kbd> to send · <kbd>Shift+Enter</kbd> for newline</div>
+  </div>
+</div>
+<script>
+const SESSION_KEY = "canvas_ai_v4";
+let sessionId = localStorage.getItem(SESSION_KEY) || Math.random().toString(36).slice(2,10);
+localStorage.setItem(SESSION_KEY, sessionId);
+
+const messagesEl = document.getElementById("messages");
+const inputEl = document.getElementById("input");
+const sendBtn = document.getElementById("sendBtn");
+const statusDot = document.getElementById("statusDot");
+const sessionBadge = document.getElementById("sessionBadge");
+
+let ws, connected = false, isStreaming = false, currentAiEl = null, msgN = 0;
+
+function uid() { return "msg-" + Date.now() + "-" + msgN++; }
+function setConnected(v) {
+  connected = v;
+  statusDot.className = "status-dot " + (v ? "ready" : "error");
+  sessionBadge.textContent = v ? "session·" + sessionId.slice(0,6) : "disconnected";
+  updateBtn();
+}
+function updateBtn() { sendBtn.disabled = isStreaming || !connected || !inputEl.value.trim(); }
+function autoResize(el) { el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight,140)+"px"; updateBtn(); }
+function scrollBottom() { messagesEl.scrollTop = messagesEl.scrollHeight; }
+function removeEmpty() { const e = document.getElementById("empty"); if(e) e.remove(); }
+
+function addUserMsg(text) {
+  removeEmpty();
+  const d = document.createElement("div");
+  d.className = "msg user";
+  d.innerHTML = `<div class="msg-avatar">you</div><div class="msg-body"><div class="msg-role">you</div><div class="msg-text">${text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div></div>`;
+  messagesEl.appendChild(d); scrollBottom();
+}
+
+function addAiShell() {
+  removeEmpty();
+  const d = document.createElement("div");
+  d.className = "msg ai";
+  d.innerHTML = `<div class="msg-avatar">ai</div><div class="msg-body"><div class="msg-role">canvas ai · llama 3.3</div><div class="msg-text ai-stream"><div class="typing-dots"><span></span><span></span><span></span></div></div></div>`;
+  messagesEl.appendChild(d);
+  currentAiEl = d.querySelector(".ai-stream");
+  scrollBottom();
+}
+
+function appendStream(text) {
+  if (!currentAiEl) return;
+  if (currentAiEl.querySelector(".typing-dots")) currentAiEl.innerHTML = "";
+  currentAiEl.textContent += text;
+  scrollBottom();
+}
+
+function finalizeStream() { currentAiEl = null; isStreaming = false; updateBtn(); }
+
+function connect() {
+  const proto = location.protocol === "https:" ? "wss:" : "ws:";
+  ws = new WebSocket(`${proto}//${location.host}/agents/canvas-agent/${sessionId}`);
+  ws.onopen = () => setConnected(true);
+  ws.onclose = () => { setConnected(false); setTimeout(connect, 3000); };
+  ws.onerror = () => setConnected(false);
+  ws.onmessage = (event) => {
+    let d; try { d = JSON.parse(event.data); } catch { return; }
+    
+    // Restore history
+    if (d.type === "cf_agent_chat_messages" && Array.isArray(d.messages)) {
+      d.messages.forEach(m => {
+        const txt = typeof m.content === "string" ? m.content : (m.parts||[]).filter(p=>p.type==="text").map(p=>p.text).join("");
+        if (!txt) return;
+        if (m.role === "user") addUserMsg(txt);
+        else if (m.role === "assistant") { addAiShell(); if(currentAiEl) currentAiEl.textContent = txt; finalizeStream(); }
+      });
+      return;
+    }
+
+    // Stream chunks - body is a JSON string with {type, delta} 
+    if (d.type === "cf_agent_use_chat_response") {
+      if (d.body) {
+        try {
+          const b = JSON.parse(d.body);
+          if (b.type === "text-delta" && b.delta) appendStream(b.delta);
+        } catch {}
+      }
+      if (d.done === true) finalizeStream();
+    }
+  };
+}
+
+function sendMessage() {
+  const text = inputEl.value.trim();
+  if (!text || isStreaming || !connected) return;
+  addUserMsg(text);
+  addAiShell();
+  isStreaming = true; updateBtn();
+  const id = uid();
+  ws.send(JSON.stringify({
+    type: "cf_agent_use_chat_request",
+    id,
+    init: {
+      method: "POST",
+      body: JSON.stringify({
+        messages: [{ role: "user", id, content: text, parts: [{ type: "text", text }] }]
+      })
+    }
+  }));
+  inputEl.value = ""; inputEl.style.height = "auto"; updateBtn();
+}
+
+function suggest(el) { inputEl.value = el.textContent; sendMessage(); }
+function handleKey(e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+inputEl.addEventListener("input", updateBtn);
+connect();
+</script>
+</body>
+</html>
