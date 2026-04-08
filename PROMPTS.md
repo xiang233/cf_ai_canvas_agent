@@ -1,49 +1,47 @@
 # AI Prompts Used
 
-This project was built with AI-assisted coding using Claude. Below are the key prompts
-that guided architectural decisions — I directed the design and debugged the implementation.
+This project was built with AI-assisted coding. Below are the prompts I used that guided
+key architectural and technical decisions.
 
-## Architecture Design
+## Porting Strategy
 
 "I have an existing Canvas AI agent built with FastAPI, Azure OpenAI, and a custom SKYWORK
-agent framework. I want to port it to Cloudflare using Llama 3.3 on Workers AI and
-Durable Objects for state. What's the best mapping of components?"
+agent framework with 21 Canvas tools. I want to port it to Cloudflare using Llama 3.3 on
+Workers AI and Durable Objects for state. Skip RAG for now."
 
-"The assignment requires: LLM, workflow/coordination, user input via chat, and memory/state.
-How should I structure this on Cloudflare?"
+"makes sense, can you write it. switch to AI llama, and since the viewer don't have canvas
+token, maybe just use mine. can you let me know what is the token currently used?"
+
+## Architecture & Scalability
+
+"can you think more deeply about the structure of this project and basically that any kinds
+of requests should be answered, like you could answer anything, including saying you are
+wrong or something, when the request is not standard. and consider the maintainability
+and scalability of the project"
+
+"i am wondering if we should also put the list of currently supported tools in the prompt"
 
 ## Agent Pattern
 
-"Llama 3.3 on Workers AI is outputting raw tool call JSON instead of executing tools through
-the AI SDK. What's the most reliable way to implement tool calling without relying on the
-AI SDK's built-in tool protocol?"
+"maybe let the model figure out what tools to execute, then execute the tool, then let
+the model aggregate the result? this is what we did for this one [original Canvas AI
+hackathon project using SKYWORK agent framework]"
 
-"I want the agent to follow a plan→execute→aggregate pattern like my original SKYWORK
-implementation — where the LLM plans which tools to call, TypeScript executes them,
-then the LLM summarizes the results. How do I implement this?"
-
-"How do I make sure the aggregation step (step 3) has the original user question so
-Llama doesn't lose context after seeing the Canvas data?"
+"to make sure on the last step llama has the original question right?"
 
 ## Prompt Engineering
 
-"How should I structure the system prompt so Llama knows when to call Canvas tools vs
-answer from its own knowledge, and handles empty results gracefully without outputting
-raw JSON?"
+"make sure this system prompt is considering all kinds of requests, like check grades,
+check announcements, check deadlines, etc"
 
-"Should I include the list of supported tools in the system prompt? What's the tradeoff
-between token usage and model awareness?"
-
-## Architecture & Maintainability
-
-"Think about the structure of this project so any kind of request can be answered,
-including edge cases, and consider maintainability and scalability."
+"ig just let it act like a true AI agent with knowledge, like if it gets no resources
+or info just say not supported or no deadline, is there a smart prompt engineering way?"
 
 ## Debugging
 
-"The WebSocket is connecting but messages aren't being received by the agent. The browser
-console shows cf_agent_use_chat_response messages with body containing JSON. How do I
-parse the UI message stream format correctly?"
+"if you need any cloudflare docs from the internet let me know!"
 
-"Workers AI is returning: context window limit (7968) exceeded. How do I restructure
-the agent to stay within the token limit while still returning useful Canvas data?"
+"can i just create on the web [instead of using CLI]"
+
+"still a few other requirements - repository name must be prefixed with cf_ai_,
+must include README.md and PROMPTS.md"
